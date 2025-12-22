@@ -1,7 +1,8 @@
 # =========================
 # Build Stage
 # =========================
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
+
 WORKDIR /app
 
 # Copy Maven config first for dependency caching
@@ -18,7 +19,8 @@ RUN mvn clean package -DskipTests
 # =========================
 # Runtime Stage (Distroless)
 # =========================
-FROM gcr.io/distroless/java17-debian12
+FROM gcr.io/distroless/java21-debian12
+
 WORKDIR /app
 
 # Copy JAR from build stage
