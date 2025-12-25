@@ -43,12 +43,33 @@ pipeline {
             }
         }
 
+        stage('Deploy Backend Service') {
+            steps {
+                echo "Deploying Backend service"
+                sh "kubectl apply -f k8s/backend-service.yaml -n $NAMESPACE"
+            }
+        }
+
         stage('Deploy Frontend') {
             steps {
                 echo "Deploying Frontend"
                 sh """
                 kubectl apply -f k8s/frontend-deployment.yaml -n $NAMESPACE
                 """
+            }
+        }
+
+        stage('Deploy Frontend Service') {
+            steps {
+                echo "Deploying Frontend service"
+                sh "kubectl apply -f k8s/frontend-service.yaml -n $NAMESPACE"
+            }
+        }
+
+        stage('Deploy Ingress') {
+            steps {
+                echo "Deploying ingress"
+                sh "kubectl apply -f k8s/ingress.yaml -n $NAMESPACE"
             }
         }
 
