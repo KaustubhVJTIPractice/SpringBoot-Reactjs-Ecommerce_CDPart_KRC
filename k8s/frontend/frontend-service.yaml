@@ -4,8 +4,9 @@ metadata:
   name: frontend-service
   namespace: ecommerce
 spec:
-  type: ClusterIP
   selector:
     app: frontend
   ports:
     - port: 80
+      targetPort: 80
+  type: ClusterIP
