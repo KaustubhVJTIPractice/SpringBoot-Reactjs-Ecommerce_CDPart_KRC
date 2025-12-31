@@ -1,23 +1,38 @@
-resource "helm_release" "alb_controller" {
+# 1) IRSA Role for ALB controller
+module "alb_irsa" {
+  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.39.0"
+
+  role_name = "${var.cluster_name}-alb-controller-role"
+
+  attach_load_balancer_controller_policy = true
+
+  oidc_providers = {
+    eks = {
+      provider_arn               = aws_eks_cluster.eks.identity[0].oidc[0].issuer
+      namespace_service_accounts = [
+        "kube-system:aws-load-balancer-controller"
+      ]
+    }
+  }
+}
+
+# 2) Helm install ALB Controller
+resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
   namespace  = "kube-system"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
-
-  depends_on = [
-    module.eks,
-    module.node_group,
-    module.alb_irsa
-  ]
+  version    = "1.8.0"
 
   set {
     name  = "clusterName"
-    value = module.eks.cluster_name
+    value = aws_eks_cluster.eks.name
   }
 
   set {
     name  = "serviceAccount.create"
-    value = "true"
+    value = "false"
   }
 
   set {
@@ -40,3 +55,4 @@ resource "helm_release" "alb_controller" {
     value = module.vpc.vpc_id
   }
 }
+
