@@ -1,19 +1,29 @@
 variable "aws_region" {
-  default = "ap-south-1"
+  description = "AWS region"
+  default     = "ap-south-1"
 }
 
 variable "cluster_name" {
-  default = "ecommerce-eks"
+  description = "EKS cluster name"
+  default     = "ecommerce-eks"
 }
 
 variable "vpc_cidr" {
-  default = "10.0.0.0/16"
+  description = "CIDR for VPC"
+  default     = "10.0.0.0/16"
 }
 
 variable "public_subnets" {
-  default = ["10.0.1.0/24", "10.0.2.0/24"]
+  description = "Public subnets"
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnets" {
-  default = ["10.0.101.0/24", "10.0.102.0/24"]
+  description = "Private subnets"
+  default     = ["10.0.101.0/24", "10.0.102.0/24"]
+}
+
+variable "node_instance_types" {
+  description = "Worker node EC2 instance types"
+  default     = ["c7i-flex.large"]
 }
