@@ -1,7 +1,7 @@
-# 1) IRSA Role for ALB controller
+# ---------- IAM Role via IRSA ----------
 module "alb_irsa" {
-  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.39.0"   # IMPORTANT
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.39.0"
 
   role_name = "ecommerce-eks-alb-controller-role"
 
@@ -10,7 +10,6 @@ module "alb_irsa" {
   oidc_providers = {
     eks = {
       provider_arn = aws_iam_openid_connect_provider.eks.arn
-
       namespace_service_accounts = [
         "kube-system:aws-load-balancer-controller"
       ]
@@ -18,13 +17,26 @@ module "alb_irsa" {
   }
 
   depends_on = [
-    aws_eks_cluster.eks,
     aws_iam_openid_connect_provider.eks
   ]
 }
 
+# ---------- Kubernetes ServiceAccount ----------
+resource "kubernetes_service_account" "alb_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.alb_irsa.iam_role_arn
+    }
+  }
 
-# 2) Helm install ALB Controller
+  depends_on = [
+    aws_eks_node_group.ng
+  ]
+}
+
+# ---------- Helm Install ----------
 resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
   namespace  = "kube-system"
@@ -32,24 +44,13 @@ resource "helm_release" "aws_lb_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.8.0"
 
+  wait    = true
+  atomic  = true
+  timeout = 900
+
   set {
     name  = "clusterName"
     value = aws_eks_cluster.eks.name
-  }
-
-  set {
-    name  = "serviceAccount.create"
-    value = "false"
-  }
-
-  set {
-    name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
-
-  set {
-    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.alb_irsa.iam_role_arn
   }
 
   set {
@@ -61,5 +62,18 @@ resource "helm_release" "aws_lb_controller" {
     name  = "vpcId"
     value = module.vpc.vpc_id
   }
-}
 
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = kubernetes_service_account.alb_controller.metadata[0].name
+  }
+
+  depends_on = [
+    kubernetes_service_account.alb_controller
+  ]
+}
